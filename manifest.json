@@ -1,0 +1,56 @@
+{
+  "name": "Advanced Audio Manager",
+  "version": "1.0",
+  "manifest_version": 2,
+  "description": "Advanced control of all audio in your browser.",
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "permissions": [
+    "tabCapture",
+    "tabs"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "browser_action": {
+    "default_icon": {
+      "16": "images/icon16.png",
+      "24": "images/icon24.png",
+      "32": "images/icon32.png"
+    },
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "Volume-Up": {
+      "suggested_key": {
+        "default": "Alt+Period",
+        "mac": "MacCtrl+Period"
+      },
+      "description": "Increase the volume in the current tab"
+    },
+    "Volume-Down": {
+      "suggested_key": {
+        "default": "Alt+Comma",
+        "mac": "MacCtrl+Comma"
+      },
+      "description": "Decrease the volume in the current tab"
+    },
+    "Mute": {
+      "suggested_key": {
+        "default": "Alt+M",
+        "mac": "MacCtrl+M"
+      },
+      "description": "Toggle whether the current tab is muted"
+    },
+    "Capture": {
+      "suggested_key": {
+        "default": "Alt+K",
+        "mac": "MacCtrl+K"
+      },
+      "description": "Toggle whether the current tab is captured"
+    }
+  }
+}
