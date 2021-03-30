@@ -4,7 +4,7 @@ body {
   width: 350px;
   color: #FFF;
   font-size: 14px;
-  --accent: #9d9d9d;  
+  --accent: #9d9d9d;
 }
 
 div.site_card {
@@ -23,7 +23,7 @@ img {
 
 span {
   height: 18px;
-  grid-column: 2 / 4;
+  grid-column: 2 / 5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
