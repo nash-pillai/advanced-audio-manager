@@ -9,7 +9,7 @@ var getPromise = (func, ...args) => new Promise((resolve, reject) => {
 
 Math.clamp = (min, value, max) => Math.min(Math.max(min, value), max);
 
-var tabList = {};
+const tabList = {};
 
 var captureTab = tab => new Promise(resolve => {
   if (tab.id in tabList) resolve(tabList[tab.id]);
@@ -18,8 +18,8 @@ var captureTab = tab => new Promise(resolve => {
       "audioContext": (audioContext = new AudioContext()),
       "streamSource": audioContext.createMediaStreamSource(stream),
       "gainNode": audioContext.createGain(),
-      "volume": 99,
-      "muted": false
+      "volume": 100,
+      "muted": false,
     };
     x.streamSource.connect(x.gainNode).connect(audioContext.destination);
     set(tab.id);
@@ -28,7 +28,7 @@ var captureTab = tab => new Promise(resolve => {
 });
 
 var set = (tabId, volume, mute) => {
-  let tabInfo = tabList[tabId];
+  const tabInfo = tabList[tabId];
   if (tabInfo === undefined) return;
   if (volume !== undefined) tabInfo.volume = Math.clamp(0, volume, 999);
   if (mute !== undefined) tabInfo.muted = mute;
@@ -46,7 +46,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   else if (request.action === "get") {
     Promise.all([
       getPromise(chrome.tabs.query, {"active": true, "currentWindow": true}),
-      getPromise(chrome.tabs.query, {"audible": true})
+      getPromise(chrome.tabs.query, {"audible": true}),
     ]).then(([[current], audible]) => {
       audible = audible.filter(item => item.id !== current.id).map(item => {
         item.captured = item.id in tabList;
@@ -70,9 +70,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 
-chrome.commands.onCommand.addListener(command => 
+chrome.commands.onCommand.addListener(command =>
   getPromise(chrome.tabs.query, {"active": true, "currentWindow": true}).then(([tab]) => {
-    let inc = command === "Volume-Up" ? 9 : -9;
+    const inc = command === "Volume-Up" ? 20 : -20;
 
     if (["Volume-Up", "Volume-Down"].includes(command))
       captureTab(tab).then(tabInfo => set(tab.id, tabInfo.volume + inc));
