@@ -19,21 +19,24 @@ var siteCard = (favIconUrl, title, tabId, url, captured) =>
       "title": url,
       click() {chrome.runtime.sendMessage({"action": "goto", tabId}); window.close()},
     }],
-    ["span", {"title": title}, title],
+    ["span", {title}, title],
     ["input", {
       "type": "number",
-      "min": "0",
-      "step": "20",
+      "min": 0,
+      "step": 20,
       input() {updateVolume(this.valueAsNumber, this.parentElement)},
       "disabled": !captured,
     }],
     ["input", {
       "type": "range",
-      "max": "20",
+      "max": 20,
       "input": sliderChange,
       "disabled": !captured,
     }],
-    ["button", {"click": muteChange}, "Mute"],
+    ["button", {
+      click() {updateMute(!this.parentElement.classList.contains("muted"), this.parentElement)},
+      "disabled": !captured,
+    }, "Mute"],
   );
 
 const a = 1997/840, b = 1009/420;
@@ -41,10 +44,6 @@ const a = 1997/840, b = 1009/420;
 function sliderChange() {
   const x = this.valueAsNumber;
   updateVolume(Math.round(a * x**2 + b * x), this.parentElement);
-}
-
-function muteChange() {
-  updateMute(!this.parentElement.classList.contains("muted"), this.parentElement);
 }
 
 var updateVolume = (volume, card) => {
