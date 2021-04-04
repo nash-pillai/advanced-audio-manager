@@ -11,30 +11,31 @@ Math.clamp = (min, value, max) => Math.min(Math.max(min, value), max);
 
 const tabList = {};
 
-var captureTab = tab => new Promise(resolve => {
-  if (tab.id in tabList) resolve(tabList[tab.id]);
-  else getPromise(chrome.tabCapture.capture, {audio: true, video: false}).then(stream => {
-    tabList[tab.id] = x = {
-      "audioContext": (audioContext = new AudioContext()),
-      "streamSource": audioContext.createMediaStreamSource(stream),
-      "gainNode": audioContext.createGain(),
-      "volume": 100,
-      "muted": false,
-    };
+var captureTab = async tab => {
+  if (tab.id in tabList) return tabList[tab.id];
+  else {
+    const stream = await getPromise(chrome.tabCapture.capture, {audio: true, video: false}),
+          audioContext = new AudioContext(),
+          x = tabList[tab.id] = {
+            audioContext,
+            "streamSource": audioContext.createMediaStreamSource(stream),
+            "gainNode": audioContext.createGain(),
+            "volume": 100,
+            "muted": false,
+          };
     x.streamSource.connect(x.gainNode).connect(audioContext.destination);
     set(tab.id);
-    resolve(x);
-  });
-});
+    return x;
+  }
+};
 
 var set = (tabId, volume, mute) => {
   const tabInfo = tabList[tabId];
-  if (tabInfo === undefined) return;
-  if (volume !== undefined) tabInfo.volume = Math.clamp(0, volume, 999);
-  if (mute !== undefined) tabInfo.muted = mute;
+  tabInfo.volume = Math.max(0, volume ?? tabInfo.volume);
+  tabInfo.muted = mute ?? tabInfo.muted;
   tabInfo.gainNode.gain.value = tabInfo.muted ? 0 : tabInfo.volume / 100;
   chrome.browserAction.setBadgeText({"text": String(tabInfo.volume), tabId});
-  chrome.browserAction.setBadgeBackgroundColor({"color": tabInfo.muted ? "#F00" : "#4285f6", tabId});
+  chrome.browserAction.setBadgeBackgroundColor({"color": tabInfo.muted ? "#F00" : "#48F", tabId});
 };
 
 
@@ -47,18 +48,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     Promise.all([
       getPromise(chrome.tabs.query, {"active": true, "currentWindow": true}),
       getPromise(chrome.tabs.query, {"audible": true}),
-    ]).then(([[current], audible]) => {
-      audible = audible.filter(item => item.id !== current.id).map(item => {
-        item.captured = item.id in tabList;
-        item.volume = item.captured ? tabList[item.id].volume : 1;
-        item.muted = item.captured ? tabList[item.id].muted : false;
-        return item;
-      });
-      captureTab(current).then(() => {
-        current.volume = tabList[current.id].volume;
-        current.muted = tabList[current.id].muted;
-        sendResponse({current, audible});
-      });
+    ]).then(async ([[current], audible]) => {
+      audible = audible.filter(item => item.id !== current.id).map(item => ({
+        ...item,
+        ...(tabList[item.id] ?? {"volume": 100, "muted": false}),
+        "captured": item.id in tabList,
+      }));
+      current = {...current, ...await captureTab(current)};
+      sendResponse({current, audible});
     });
     return true;
   }
@@ -70,18 +67,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 
-chrome.commands.onCommand.addListener(command =>
-  getPromise(chrome.tabs.query, {"active": true, "currentWindow": true}).then(([tab]) => {
-    const inc = command === "Volume-Up" ? 20 : -20;
+chrome.commands.onCommand.addListener(async command => {
+  const [tab] = await getPromise(chrome.tabs.query, {"active": true, "currentWindow": true}),
+        inc = command === "Volume-Up" ? 20 : -20;
 
+  if (command === "Capture" && tab.id in tabList) {
+    tabList[tab.id].streamSource.mediaStream.getTracks().forEach(track => track.stop());
+    chrome.browserAction.setBadgeText({"tabId": tab.id});
+    delete tabList[tab.id];
+  } else {
+    const tabInfo = await captureTab(tab);
     if (["Volume-Up", "Volume-Down"].includes(command))
-      captureTab(tab).then(tabInfo => set(tab.id, tabInfo.volume + inc));
-    else if (command === "Mute")
-      captureTab(tab).then(tabInfo => set(tab.id, undefined, !tabInfo.muted));
-    else if (tab.id in tabList) {
-      tabList[tab.id].streamSource.mediaStream.getTracks().forEach(track => track.stop());
-      chrome.browserAction.setBadgeText({"tabId": tab.id});
-      delete tabList[tab.id];
-    } else captureTab(tab);
-  })
-);
+      set(tab.id, tabInfo.volume + inc);
+    else if (command === "Mute") set(tab.id, undefined, !tabInfo.muted);
+  }
+});
