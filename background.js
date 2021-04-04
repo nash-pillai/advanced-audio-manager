@@ -31,12 +31,11 @@ var captureTab = async tab => {
 
 var set = (tabId, volume, mute) => {
   const tabInfo = tabList[tabId];
-  if (tabInfo === undefined) return;
-  if (volume !== undefined) tabInfo.volume = Math.clamp(0, volume, 999);
-  if (mute !== undefined) tabInfo.muted = mute;
+  tabInfo.volume = Math.max(0, volume ?? tabInfo.volume);
+  tabInfo.muted = mute ?? tabInfo.muted;
   tabInfo.gainNode.gain.value = tabInfo.muted ? 0 : tabInfo.volume / 100;
   chrome.browserAction.setBadgeText({"text": String(tabInfo.volume), tabId});
-  chrome.browserAction.setBadgeBackgroundColor({"color": tabInfo.muted ? "#F00" : "#4285f6", tabId});
+  chrome.browserAction.setBadgeBackgroundColor({"color": tabInfo.muted ? "#F00" : "#48F", tabId});
 };
 
 
@@ -50,15 +49,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       getPromise(chrome.tabs.query, {"active": true, "currentWindow": true}),
       getPromise(chrome.tabs.query, {"audible": true}),
     ]).then(async ([[current], audible]) => {
-      audible = audible.filter(item => item.id !== current.id).map(item => {
-        item.captured = item.id in tabList;
-        item.volume = item.captured ? tabList[item.id].volume : 1;
-        item.muted = item.captured ? tabList[item.id].muted : false;
-        return item;
-      });
-      await captureTab(current);
-      current.volume = tabList[current.id].volume;
-      current.muted = tabList[current.id].muted;
+      audible = audible.filter(item => item.id !== current.id).map(item => ({
+        ...item,
+        ...(tabList[item.id] ?? {"volume": 100, "muted": false}),
+        "captured": item.id in tabList,
+      }));
+      current = {...current, ...await captureTab(current)};
       sendResponse({current, audible});
     });
     return true;
