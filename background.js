@@ -1,30 +1,16 @@
-var getPromise = (func, ...args) => new Promise((resolve, reject) => {
-  try {
-    func(...args, result => {
-      if (chrome.runtime.lastError) reject(chrome.runtime.lastError)
-      else resolve(result)
-    })
-  } catch (error) {reject(error)}
-});
-
-Math.clamp = (min, value, max) => Math.min(Math.max(min, value), max);
-
-const tabList = {};
+const tabList = {}, audioContext = new AudioContext();
 
 var captureTab = async tab => {
   if (tab.id in tabList) return tabList[tab.id];
   else {
     const stream = await getPromise(chrome.tabCapture.capture, {audio: true, video: false}),
-          audioContext = new AudioContext(),
           x = tabList[tab.id] = {
-            audioContext,
             "streamSource": audioContext.createMediaStreamSource(stream),
             "gainNode": audioContext.createGain(),
             "volume": 100,
             "muted": false,
           };
     x.streamSource.connect(x.gainNode).connect(audioContext.destination);
-    set(tab.id);
     return x;
   }
 };
@@ -72,13 +58,14 @@ chrome.commands.onCommand.addListener(async command => {
         inc = command === "Volume-Up" ? 20 : -20;
 
   if (command === "Capture" && tab.id in tabList) {
-    tabList[tab.id].streamSource.mediaStream.getTracks().forEach(track => track.stop());
+    tabList[tab.id].streamSource.mediaStream.getTracks()[0].stop();
     chrome.browserAction.setBadgeText({"tabId": tab.id});
     delete tabList[tab.id];
   } else {
     const tabInfo = await captureTab(tab);
-    if (["Volume-Up", "Volume-Down"].includes(command))
-      set(tab.id, tabInfo.volume + inc);
-    else if (command === "Mute") set(tab.id, undefined, !tabInfo.muted);
+    set(tab.id,
+      command.startsWith("Volume-") ? tabInfo.volume + inc: null,
+      command === "Mute" ? !tabInfo.muted : null,
+    );
   }
 });
