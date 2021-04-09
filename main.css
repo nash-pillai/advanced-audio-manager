@@ -84,12 +84,13 @@ hr {
   border: none;
 }
 
-/* div.footer {
+footer {
   display: grid;
-  grid-template-columns: repeat(5, auto);
+  grid-template-columns: repeat(4, auto);
 }
 
-p {
+a {
+  color: inherit;
   text-align: center;
   margin: 5px;
-} */
+}
