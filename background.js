@@ -25,6 +25,25 @@ var set = (tabId, volume, mute) => {
 };
 
 
+chrome.contextMenus.create({
+  "title": "Toggle Captured",
+  "contexts": ["browser_action"],
+  onclick(info, tab) {
+    if (tab.id in tabList) {
+      tabList[tab.id].streamSource.mediaStream.getTracks()[0].stop();
+      chrome.browserAction.setBadgeText({"tabId": tab.id});
+      delete tabList[tab.id];
+    } else captureTab(tab).then(() => set(tab.id));
+  },
+});
+
+chrome.contextMenus.create({
+  "title": "Toggle Muted",
+  "contexts": ["browser_action"],
+  onclick(info, tab) {
+    captureTab(tab).then(({muted}) => set(tab.id, null, !muted));
+  },
+});
 
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

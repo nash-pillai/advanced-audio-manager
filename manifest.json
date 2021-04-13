@@ -10,7 +10,8 @@
   },
   "permissions": [
     "tabCapture",
-    "tabs"
+    "tabs",
+    "contextMenus"
   ],
   "background": {
     "scripts": ["background.js", "utils.js"]
