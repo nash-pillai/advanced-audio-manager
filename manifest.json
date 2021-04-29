@@ -14,7 +14,7 @@
     "contextMenus"
   ],
   "background": {
-    "scripts": ["background.js", "utils.js"]
+    "scripts": ["src/background.js", "src/utils.js"]
   },
   "browser_action": {
     "default_icon": {
@@ -22,7 +22,7 @@
       "24": "images/icon24.png",
       "32": "images/icon32.png"
     },
-    "default_popup": "popup.html"
+    "default_popup": "src/popup/popup.html"
   },
   "commands": {
     "Volume-Up": {
