@@ -28,20 +28,24 @@ var set = (tabId, volume, mute) => {
 chrome.contextMenus.create({
   "title": "Toggle Captured",
   "contexts": ["browser_action"],
-  onclick(info, tab) {
+  async onclick(info, tab) {
     if (tab.id in tabList) {
       tabList[tab.id].streamSource.mediaStream.getTracks()[0].stop();
       chrome.browserAction.setBadgeText({"tabId": tab.id});
       delete tabList[tab.id];
-    } else captureTab(tab).then(() => set(tab.id));
+      return;
+    }
+    await captureTab(tab);
+    set(tab.id);
   },
 });
 
 chrome.contextMenus.create({
   "title": "Toggle Muted",
   "contexts": ["browser_action"],
-  onclick(info, tab) {
-    captureTab(tab).then(({muted}) => set(tab.id, null, !muted));
+  async onclick(info, tab) {
+    const {muted} = await captureTab(tab);
+    set(tab.id, undefined, !muted);
   },
 });
 
