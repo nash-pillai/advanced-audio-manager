@@ -24,16 +24,18 @@ var set = (tabId, volume, mute) => {
   chrome.browserAction.setBadgeBackgroundColor({"color": tabInfo.muted ? "#F00" : "#48F", tabId});
 };
 
+function stopCapture(tab) {
+  tabList[tab.id].streamSource.mediaStream.getTracks()[0].stop();
+  chrome.browserAction.setBadgeText({"tabId": tab.id});
+  delete tabList[tab.id];
+}
 
 chrome.contextMenus.create({
   "title": "Toggle Captured",
   "contexts": ["browser_action"],
   async onclick(info, tab) {
     if (tab.id in tabList) {
-      tabList[tab.id].streamSource.mediaStream.getTracks()[0].stop();
-      chrome.browserAction.setBadgeText({"tabId": tab.id});
-      delete tabList[tab.id];
-      return;
+      return stopCapture(tab);
     }
     await captureTab(tab);
     set(tab.id);
@@ -81,14 +83,11 @@ chrome.commands.onCommand.addListener(async command => {
         inc = command === "Volume-Up" ? 20 : -20;
 
   if (command === "Capture" && tab.id in tabList) {
-    tabList[tab.id].streamSource.mediaStream.getTracks()[0].stop();
-    chrome.browserAction.setBadgeText({"tabId": tab.id});
-    delete tabList[tab.id];
-  } else {
-    const tabInfo = await captureTab(tab);
-    set(tab.id,
-      command.startsWith("Volume-") ? tabInfo.volume + inc: null,
-      command === "Mute" ? !tabInfo.muted : null,
-    );
+    return stopCapture(tab);
   }
+  const tabInfo = await captureTab(tab);
+  set(tab.id,
+    command.startsWith("Volume-") ? tabInfo.volume + inc: undefined,
+    command === "Mute" ? !tabInfo.muted : undefined,
+  );
 });
