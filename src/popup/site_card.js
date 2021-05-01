@@ -1,5 +1,5 @@
 function siteCard(favIconUrl, title, tabId, url, captured) {
-  return ce("div", {"class": "site_card", "data-id": tabId},
+  return createElement("div", {"class": "site_card", "data-id": tabId},
     ["img", {
       "src": favIconUrl || "/images/globe.svg",
       "alt": "Favicon",

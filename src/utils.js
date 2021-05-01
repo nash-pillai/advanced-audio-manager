@@ -7,17 +7,19 @@ const getPromise = (func, ...args) => new Promise((resolve, reject) => {
   } catch (error) {reject(error)}
 });
 
-function ce(name, attributes={}, ...children) {     // Creates Elements
+function createElement(name, attributes={}, ...children) {
   const element = name ? document.createElement(name) : new DocumentFragment();
-  for (const [k, v] of Object.entries(attributes))
-    if (typeof v === "function") element.addEventListener(k, v);
-    else if (k === "classList") element.classList.add(...v);
-    else if (Array.isArray(v)) v.forEach(i => element.addEventListener(k, i));
-    else if (v === false) continue;
-    else element.setAttribute(k, v);
-  for (const child of children)
-    if (child instanceof HTMLElement) element.appendChild(child);
-    else if (typeof child === "string") element.appendChild(document.createTextNode(child));
-    else if (Array.isArray(child)) element.appendChild(ce(...child));
+  if (name) Object.entries(attributes).forEach(add_attribute, element);
+  element.append(...children.map(child =>
+    Array.isArray(child) ? createElement(...child) : child));
   return element;
+}
+
+function add_attribute([k, v]) {
+  if (v === false) return;
+  if (Array.isArray(v)) return v.map(i => [k, i]).forEach(add_attribute, this);
+  if (typeof v === "function") return this.addEventListener(k, v);
+  if (v === true) v = "";
+  if (k in ["classList", "relList"]) return this[k].add(...v.split(/\s+/));
+  this.setAttribute(k, v);
 }
