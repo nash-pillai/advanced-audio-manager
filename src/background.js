@@ -1,17 +1,23 @@
 const tabList = {}, audioContext = new AudioContext();
 
-var captureTab = async tab => {
-  if (tab.id in tabList) return tabList[tab.id];
-  else {
-    const stream = await getPromise(chrome.tabCapture.capture, {audio: true, video: false}),
-          x = tabList[tab.id] = {
-            "streamSource": audioContext.createMediaStreamSource(stream),
-            "gainNode": audioContext.createGain(),
-            "volume": 100,
-            "muted": false,
-          };
-    x.streamSource.connect(x.gainNode).connect(audioContext.destination);
-    return x;
+async function captureTab(tab){
+  if (tab.id in tabList) return {...tabList[tab.id], captured: true};
+  const tabInfo = {
+    "volume": 100,
+    "muted": tab.mutedInfo?.muted ?? false,
+    "gainNode": audioContext.createGain(),
+  };
+
+  try {
+    const stream = await getPromise(chrome.tabCapture.capture, {audio: true});
+    audioContext.createMediaStreamSource(stream)
+      .connect(tabInfo.gainNode)
+      .connect(audioContext.destination);
+    tabList[tab.id] = {...tabInfo, stream};
+    return {...tabInfo, captured: true};
+  } catch (err) {
+    console.warn("%ccaptureTab", "font-style: italic", "failed:", err.message);
+    return {...tabInfo, captured: false};
   }
 };
 
@@ -25,7 +31,7 @@ var set = (tabId, volume, mute) => {
 };
 
 function stopCapture(tab) {
-  tabList[tab.id].streamSource.mediaStream.getTracks()[0].stop();
+  tabList[tab.id].stream.getTracks()[0].stop();
   chrome.browserAction.setBadgeText({"tabId": tab.id});
   delete tabList[tab.id];
 }

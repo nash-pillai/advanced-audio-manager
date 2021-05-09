@@ -17,7 +17,7 @@ var setTab = (tabId, volume, mute) =>
 
 window.onload = async () => {
   const {current, audible} = await getPromise(chrome.runtime.sendMessage, {"action": "get"}),
-        card = siteCard(current.favIconUrl, current.title, current.id, current.url, true);
+        card = siteCard(current.favIconUrl, current.title, current.id, current.url, current.captured);
   updateMute(current.muted, card);
   updateVolume(current.volume, card);
   document.getElementById("current_tab").replaceChildren(card);
